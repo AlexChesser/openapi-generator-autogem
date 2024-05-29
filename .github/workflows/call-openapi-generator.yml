@@ -32,17 +32,9 @@ jobs:
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
-      - name: list files
-        run: |
-          pwd
-          ls -al
-          sudo chown -R runner:docker .
-          git add .
-          ls -al
-          git status
       - name: Detect changed files
         run: |
-          CHANGED_FILES=$(git diff --name-only)
+          CHANGED_FILES=$(git status --porcelain)
           echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting"
