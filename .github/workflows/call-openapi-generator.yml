@@ -36,6 +36,7 @@ jobs:
         run: |
           pwd
           ls -al
+          sudo chown -R runner:docker .
           git add .
       - name: Detect changed files
         run: |
