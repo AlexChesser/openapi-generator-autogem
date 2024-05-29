@@ -19,19 +19,19 @@ jobs:
             generate \
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
-            -p packageName=cdms_client \
+            -p packageName=my_client \
             -p gemVersion=1.0.0 \
-            -p moduleName=CdmsClient \
+            -p moduleName=myClient \
             -p library=faraday \
-            -o /local/cdms_client
+            -o /local/my_client
       - name: Install Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.0
       - name: build gemVersion
         run: |
-          cd cdms_client
-          gem build cdms_client.gemspec
+          cd /local/my_client
+          gem build my_client.gemspec
       - name: commit to main
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
