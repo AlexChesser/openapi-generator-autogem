@@ -21,7 +21,7 @@ jobs:
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
             -p gemVersion=1.0.0 \
-            -p moduleName=myClient \
+            -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
       - name: Install Ruby
@@ -30,8 +30,8 @@ jobs:
           ruby-version: 3.0
       - name: build gemVersion
         run: |
-          ls
           cd my_client
+          ls
           gem build my_client*.gemspec
       # - name: commit to main
       #   run: |
