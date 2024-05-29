@@ -30,7 +30,7 @@ jobs:
             -o /local/my_client
       - name: Detect changed files
         run: |
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          CHANGED_FILES=$(git diff --name-only)
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting"
             exit 1
