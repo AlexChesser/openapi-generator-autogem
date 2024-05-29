@@ -39,6 +39,7 @@ jobs:
           sudo chown -R runner:docker .
           git add .
           ls -al
+          git status
       - name: Detect changed files
         run: |
           CHANGED_FILES=$(git diff --name-only)
