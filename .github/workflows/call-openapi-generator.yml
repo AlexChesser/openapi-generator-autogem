@@ -30,12 +30,13 @@ jobs:
           ruby-version: 3.0
       - name: build gemVersion
         run: |
-          cd /local/my_client
-          gem build my_client.gemspec
-      - name: commit to main
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git add .
-          git commit -m "Update gemVersion"
-          git push
+          ls
+          cd my_client
+          gem build my_client*.gemspec
+      # - name: commit to main
+      #   run: |
+      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      #     git config --global user.name "github-actions[bot]"
+      #     git add .
+      #     git commit -m "Update gemVersion"
+      #     git push
