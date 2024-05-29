@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          path: .
+          path: ${{ github.workspace }}
       - name: Run OpenAPI Generator
         run: |
           docker run --rm \
