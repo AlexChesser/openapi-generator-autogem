@@ -36,9 +36,11 @@ jobs:
         run: |
           pwd
           ls -al
+          git add .
       - name: Detect changed files
         run: |
           CHANGED_FILES=$(git diff --name-only)
+          echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting"
             exit 1
