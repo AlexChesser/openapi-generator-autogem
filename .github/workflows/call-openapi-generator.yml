@@ -31,8 +31,8 @@ jobs:
       - name: build gemVersion
         run: |
           cd my_client
-          ls
-          gem build my_client*.gemspec
+          ls -al
+          sudo gem build my_client.gemspec
       # - name: commit to main
       #   run: |
       #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
