@@ -1,0 +1,29 @@
+name: OpenAPI Generator
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run OpenAPI Generator
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/local \
+            openapitools/openapi-generator-cli:latest \
+            java -jar /opt/openapi-generator/modules/openapi-generator-cli/target/openapi-generator-cli.jar \
+            generate \
+            -g ruby \
+            -i https://cdms-webapi.nonprod.vibe.justworks.com/v3/api-docs \
+            -p packageName=cdms_client \
+            -p gemVersion=1.0.0 \
+            -p moduleName=CdmsClient \
+            -p library=faraday \
+            -o /local/cdms_client
