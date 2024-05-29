@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
   generate:
@@ -21,9 +18,24 @@ jobs:
             java -jar /opt/openapi-generator/modules/openapi-generator-cli/target/openapi-generator-cli.jar \
             generate \
             -g ruby \
-            -i https://cdms-webapi.nonprod.vibe.justworks.com/v3/api-docs \
+            -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=cdms_client \
             -p gemVersion=1.0.0 \
             -p moduleName=CdmsClient \
             -p library=faraday \
             -o /local/cdms_client
+      - name: Install Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0
+      - name: build gemVersion
+        run: |
+          cd cdms_client
+          gem build cdms_client.gemspec
+      - name: commit to main
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git add .
+          git commit -m "Update gemVersion"
+          git push
