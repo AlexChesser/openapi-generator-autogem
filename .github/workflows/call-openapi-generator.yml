@@ -50,6 +50,7 @@ jobs:
         id: next
         run: |
           echo "next=${{ env.VERSION_NEXT }}" >> "$GITHUB_OUTPUT"
+
   check_for_changes:
     runs-on: ubuntu-latest
     needs: version_details
@@ -79,11 +80,20 @@ jobs:
         id: verify_diff
         run: |
           git diff --quiet . || echo "changed_files=true" >> $GITHUB_OUTPUT
+      - name: echo changefile result
+        run: |
+          echo {{ env.changed_files }}
+
   generate:
     runs-on: ubuntu-latest
     needs: [ version_details, check_for_changes ]
     if: ${{ needs.check_for_changes.outputs.changed_files == 'true' }}
     steps:
+      - name: confirm variables
+        run: |
+          echo changed_files ${{ needs.check_for_changes.outputs.changed_files }}
+          echo current ${{ needs.version_details.outputs.current }}
+          echo next ${{ needs.version_details.outputs.next }}
       - name: Checkout code
         uses: actions/checkout@v4
         with:
