@@ -64,6 +64,8 @@ jobs:
           echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting that's OK"
+            gh run cancel ${{ github.run_id }}
+            gh run watch ${{ github.run_id }}
             exit 0
           fi
       - name: increment version
