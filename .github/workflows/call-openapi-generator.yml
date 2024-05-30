@@ -11,16 +11,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
+          fetch-tags: 'true'
           path: ${{ github.workspace }}
       - name: load current version
         run: |
           # List git tags sorted based on semantic versioning
           GIT_TAGS=$(git tag --sort=version:refname)
+          echo GIT_TAGS=$GIT_TAGS
           # Get last line of output which returns the
           # last tag (most recent version)
           GIT_TAG_LATEST=$(echo "$GIT_TAGS" | tail -n 1)
+          echo GIT_TAG_LATEST=$GIT_TAG_LATEST
           # If no tag found, default to v0.0.0
           if [ -z "$GIT_TAG_LATEST" ]; then
             GIT_TAG_LATEST="v0.0.0"
