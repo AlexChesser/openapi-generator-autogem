@@ -80,10 +80,11 @@ jobs:
       - name: Check if there are any changes
         id: verify_diff
         run: |
+          git add .
           git diff --quiet . || echo "changed_files=true" >> $GITHUB_OUTPUT
       - name: echo changefile result
         run: |
-          echo {{ env.changed_files }}
+          echo changed_files=${{ env.changed_files }}
 
   generate:
     runs-on: ubuntu-latest
