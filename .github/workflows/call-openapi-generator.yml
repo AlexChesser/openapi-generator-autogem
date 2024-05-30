@@ -27,6 +27,7 @@ jobs:
           fi
           # Strip prefix 'v' from the tag to easily increment
           GIT_TAG_LATEST=$(echo "$GIT_TAG_LATEST" | sed 's/^v//')
+          echo $GIT_TAG_LATEST
       - name: Run OpenAPI Generator
         run: |
           docker run --rm \
@@ -51,7 +52,9 @@ jobs:
           fi
       - name: increment version
         run: |
+          echo GIT_TAG_LATEST=$GIT_TAG_LATEST
           VERSION_NEXT="$(echo "$GIT_TAG_LATEST" | awk -F. '{$NF++; print $1"."$2"."$NF}')"
+          echo VERSION_NEXT=$VERSION_NEXT
           git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
           git push origin main --follow-tags
       - name: Regenerate OpenAPI client using new version
