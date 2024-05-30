@@ -45,7 +45,8 @@ jobs:
             -o /local/my_client
       - name: Detect changed files
         run: |
-          CHANGED_FILES=$(git --no-pager diff --name-only)
+          git add .
+          CHANGED_FILES=$(git --no-pager diff --staged --name-only)
           echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting that's OK"
