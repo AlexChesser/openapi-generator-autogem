@@ -27,9 +27,10 @@ jobs:
           fi
           # Strip prefix 'v' from the tag to easily increment
           GIT_TAG_LATEST=$(echo "$GIT_TAG_LATEST" | sed 's/^v//')
-          echo $GIT_TAG_LATEST
+          echo "GIT_TAG_LATEST=$GIT_TAG_LATEST" >> $GITHUB_ENV
       - name: Run OpenAPI Generator
         run: |
+          echo GIT_TAG_LATEST=${{ env.GIT_TAG_LATEST }}
           docker run --rm \
             -v ${{ github.workspace }}:/local \
             openapitools/openapi-generator-cli:latest \
@@ -38,7 +39,7 @@ jobs:
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
-            -p gemVersion=$GIT_TAG_LATEST \
+            -p gemVersion=${{ env.GIT_TAG_LATEST }} \
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
@@ -52,8 +53,10 @@ jobs:
           fi
       - name: increment version
         run: |
-          echo GIT_TAG_LATEST=$GIT_TAG_LATEST
+          GIT_TAG_LATEST=${{ env.GIT_TAG_LATEST }}
+          echo $GIT_TAG_LATEST
           VERSION_NEXT="$(echo "$GIT_TAG_LATEST" | awk -F. '{$NF++; print $1"."$2"."$NF}')"
+          echo "VERSION_NEXT=$VERSION_NEXT" >> $GITHUB_ENV
           echo VERSION_NEXT=$VERSION_NEXT
           git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
           git push origin main --follow-tags
@@ -67,7 +70,7 @@ jobs:
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
-            -p gemVersion=$VERSION_NEXT \
+            -p gemVersion=${{ env.VERSION_NEXT }} \
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
