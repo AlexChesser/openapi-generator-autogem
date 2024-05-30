@@ -11,5 +11,5 @@ Generator version: 7.7.0-SNAPSHOT
 =end
 
 module MyClient
-  VERSION = '1.0.0'
+  VERSION = '0.0.1'
 end
