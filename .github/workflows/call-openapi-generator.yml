@@ -43,10 +43,19 @@ jobs:
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
+      - name: Check if there are any changes
+        id: verify_diff
+        run: |
+          git diff --quiet . || echo "CHANGED_FILES"=true" >> $GITHUB_OUTPUT
+      - name: Output previous result
+        run: |
+          ls -al
+          git add .
+          git --no-pager diff --staged
+          echo changed files result ${{ env.CHANGED_FILES }}
       - name: Detect changed files
         run: |
-          git add .
-          CHANGED_FILES=$(git --no-pager diff --staged --name-only)
+          CHANGED_FILES=${{ env.CHANGED_FILES }}
           echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting that's OK"
