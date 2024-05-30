@@ -6,10 +6,10 @@ on:
       - main
 
 jobs:
-  version_details:
+  version:
     outputs:
-      version_current: ${{ steps.current.outputs.current }}
-      version_next: ${{ steps.next.outputs.next }}
+      current: ${{ steps.current.outputs.current }}
+      next: ${{ steps.next.outputs.next }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -18,7 +18,7 @@ jobs:
           path: ${{ github.workspace }}
       - name: Get tags
         run: git fetch --prune --tags origin
-      - name: load current version
+      - name: pull version information
         id: version
         run: |
           # List git tags sorted based on semantic versioning
@@ -38,6 +38,7 @@ jobs:
       - name: load current version
         id: current
         run: |
+          echo "current=${{ env.GIT_TAG_LATEST }}"
           echo "current=${{ env.GIT_TAG_LATEST }}" >> "$GITHUB_OUTPUT"
       - name: increment version
         run: |
@@ -53,7 +54,7 @@ jobs:
 
   check_for_changes:
     runs-on: ubuntu-latest
-    needs: version_details
+    needs: version
     outputs:
       changed_files: ${{ steps.verify_diff.outputs.changed_files }}
     steps:
@@ -63,7 +64,7 @@ jobs:
           path: ${{ github.workspace }}
       - name: Run OpenAPI Generator
         run: |
-          echo GIT_TAG_LATEST=${{needs.version_details.outputs.current}}
+          echo GIT_TAG_LATEST=${{needs.version.outputs.current}}
           docker run --rm \
             -v ${{ github.workspace }}:/local \
             openapitools/openapi-generator-cli:latest \
@@ -72,7 +73,7 @@ jobs:
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
-            -p gemVersion=${{needs.version_details.outputs.current}} \
+            -p gemVersion=${{needs.version.outputs.current}} \
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
@@ -86,14 +87,14 @@ jobs:
 
   generate:
     runs-on: ubuntu-latest
-    needs: [ version_details, check_for_changes ]
+    needs: [ version, check_for_changes ]
     if: ${{ needs.check_for_changes.outputs.changed_files == 'true' }}
     steps:
       - name: confirm variables
         run: |
           echo changed_files ${{ needs.check_for_changes.outputs.changed_files }}
-          echo current ${{ needs.version_details.outputs.current }}
-          echo next ${{ needs.version_details.outputs.next }}
+          echo current ${{ needs.version.outputs.current }}
+          echo next ${{ needs.version.outputs.next }}
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -108,13 +109,13 @@ jobs:
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
-            -p gemVersion=${{ needs.version_details.outputs.next }} \
+            -p gemVersion=${{ needs.version.outputs.next }} \
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
       - name: commit to main
         run: |
-          VERSION_NEXT=${{ needs.version_details.outputs.next }}
+          VERSION_NEXT=${{ needs.version.outputs.next }}
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add .
