@@ -6,18 +6,20 @@ on:
       - main
 
 jobs:
-  generate:
+  version_details:
+    outputs:
+      version_current: ${{ steps.current.outputs.current }}
+      version_next: ${{ steps.next.outputs.next }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-tags: 'true'
           path: ${{ github.workspace }}
       - name: Get tags
         run: git fetch --prune --tags origin
       - name: load current version
+        id: version
         run: |
           # List git tags sorted based on semantic versioning
           GIT_TAGS=$(git tag --sort=version:refname)
@@ -33,9 +35,34 @@ jobs:
           # Strip prefix 'v' from the tag to easily increment
           GIT_TAG_LATEST=$(echo "$GIT_TAG_LATEST" | sed 's/^v//')
           echo "GIT_TAG_LATEST=$GIT_TAG_LATEST" >> $GITHUB_ENV
+      - name: load current version
+        id: current
+        run: |
+          echo "current=${{ env.GIT_TAG_LATEST }}" >> "$GITHUB_OUTPUT"
+      - name: increment version
+        run: |
+          GIT_TAG_LATEST=${{ env.GIT_TAG_LATEST }}
+          echo $GIT_TAG_LATEST
+          VERSION_NEXT="$(echo "$GIT_TAG_LATEST" | awk -F. '{$NF++; print $1"."$2"."$NF}')"
+          echo "VERSION_NEXT=$VERSION_NEXT" >> $GITHUB_ENV
+          echo VERSION_NEXT=$VERSION_NEXT
+      - name: load next version
+        id: next
+        run: |
+          echo "next=${{ env.VERSION_NEXT }}" >> "$GITHUB_OUTPUT"
+  check_for_changes:
+    runs-on: ubuntu-latest
+    needs: version_details
+    outputs:
+      changed_files: ${{ steps.verify_diff.outputs.changed_files }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}
       - name: Run OpenAPI Generator
         run: |
-          echo GIT_TAG_LATEST=${{ env.GIT_TAG_LATEST }}
+          echo GIT_TAG_LATEST=${{needs.version_details.outputs.current}}
           docker run --rm \
             -v ${{ github.workspace }}:/local \
             openapitools/openapi-generator-cli:latest \
@@ -44,43 +71,23 @@ jobs:
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
-            -p gemVersion=${{ env.GIT_TAG_LATEST }} \
+            -p gemVersion=${{needs.version_details.outputs.current}} \
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
       - name: Check if there are any changes
         id: verify_diff
         run: |
-          git diff --quiet . || echo "CHANGED_FILES=true" >> $GITHUB_OUTPUT
-      - name: Output previous result
-        run: |
-          ls -al
-          git add .
-          git --no-pager diff --staged
-          echo changed files result ${{ env.CHANGED_FILES }}
-      - name: Checkout GitHub Actions toolkit
-        if: env.CHANGED_FILES != 'true'
-        run: |
-          mkdir -p $GITHUB_ACTIONS_PATH
-          curl -fL -o $GITHUB_ACTIONS_PATH/actions-ubuntu-latest.tar.gz https://github.com/actions/checkout/releases/download/v3.2.0/actions-ubuntu-latest.tar.gz
-          tar -xz -C $GITHUB_ACTIONS_PATH -f $GITHUB_ACTIONS_PATH/actions-ubuntu-latest.tar.gz
-          github.actions.skip "Skipping remaining steps"
-      - name: Detect changed files
-        run: |
-          CHANGED_FILES=${{ env.CHANGED_FILES }}
-          echo $CHANGED_FILES
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "No changes detected, exiting that's OK"
-            github.actions.exit.neutral
-            exit 0
-          fi
-      - name: increment version
-        run: |
-          GIT_TAG_LATEST=${{ env.GIT_TAG_LATEST }}
-          echo $GIT_TAG_LATEST
-          VERSION_NEXT="$(echo "$GIT_TAG_LATEST" | awk -F. '{$NF++; print $1"."$2"."$NF}')"
-          echo "VERSION_NEXT=$VERSION_NEXT" >> $GITHUB_ENV
-          echo VERSION_NEXT=$VERSION_NEXT
+          git diff --quiet . || echo "changed_files=true" >> $GITHUB_OUTPUT
+  generate:
+    runs-on: ubuntu-latest
+    needs: [ version_details, check_for_changes ]
+    if: ${{ needs.check_for_changes.outputs.changed_files == 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}
       - name: Regenerate OpenAPI client using new version
         if: env.CHANGED_FILES == 'true'
         run: |
@@ -92,31 +99,32 @@ jobs:
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
-            -p gemVersion=${{ env.VERSION_NEXT }} \
+            -p gemVersion=${{ needs.version_details.outputs.next }} \
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
       - name: commit to main
         if: env.CHANGED_FILES == 'true'
         run: |
-          VERSION_NEXT=${{ env.VERSION_NEXT }}
+          VERSION_NEXT=${{ needs.version_details.outputs.next }}
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add .
           git commit -m "Update soure files for version $VERSION_NEXT"
           git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
-          git push origin main --follow-tags
-      - name: Install Ruby
-        if: env.CHANGED_FILES == 'true'
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.0
-      - name: build gemVersion
-        if: env.CHANGED_FILES == 'true'
-        run: |
-          cd my_client
-          ls -al
-          sudo gem build my_client.gemspec
+          echo git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
+          echo git push origin main --follow-tags
+      # - name: Install Ruby
+      #   if: env.CHANGED_FILES == 'true'
+      #   uses: ruby/setup-ruby@v1
+      #   with:
+      #     ruby-version: 3.0
+      # - name: build gemVersion
+      #   if: env.CHANGED_FILES == 'true'
+      #   run: |
+      #     cd my_client
+      #     ls -al
+      #     sudo gem build my_client.gemspec
       # - name: commit to main
       #   run: |
       #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
