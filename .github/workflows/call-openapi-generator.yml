@@ -64,7 +64,7 @@ jobs:
           echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting that's OK"
-            github.actions.skip('No changes detected, exiting early :)')
+            github.actions.skip('No changes detected, exiting early')
             exit 0
           fi
       - name: increment version
