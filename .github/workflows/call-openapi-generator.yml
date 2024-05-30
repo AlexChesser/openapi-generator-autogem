@@ -58,10 +58,6 @@ jobs:
           VERSION_NEXT="$(echo "$GIT_TAG_LATEST" | awk -F. '{$NF++; print $1"."$2"."$NF}')"
           echo "VERSION_NEXT=$VERSION_NEXT" >> $GITHUB_ENV
           echo VERSION_NEXT=$VERSION_NEXT
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
-          git push origin main --follow-tags
       - name: Regenerate OpenAPI client using new version
         run: |
           docker run --rm \
@@ -78,11 +74,13 @@ jobs:
             -o /local/my_client
       - name: commit to main
         run: |
+          VERSION_NEXT=${{ env.VERSION_NEXT }}
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add .
-          git commit -m "Update soure files"
-          git push
+          git commit -m "Update soure files for version $VERSION_NEXT"
+          git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
+          git push origin main --follow-tags
       - name: Install Ruby
         uses: ruby/setup-ruby@v1
         with:
