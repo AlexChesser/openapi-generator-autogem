@@ -82,7 +82,13 @@ jobs:
         run: |
           ls -al
           git add .
-          git diff --quiet --staged . || echo "changed_files=true" >> $GITHUB_OUTPUT
+          CHANGED_FILES=$(git diff --name-only --staged)
+          echo $CHANGED_FILES
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changes detected, exiting"
+            exit 0
+          fi
+          echo "changed_files=true" >> $GITHUB_OUTPUT
 
   generate:
     runs-on: ubuntu-latest
@@ -129,6 +135,7 @@ jobs:
       - name: build gemVersion
         run: |
           ls -al
+          cd my_client
           sudo gem build my_client.gemspec
           ls -al
       # - name: Release Gem
