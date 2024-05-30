@@ -58,6 +58,13 @@ jobs:
           git add .
           git --no-pager diff --staged
           echo changed files result ${{ env.CHANGED_FILES }}
+      - name: Checkout GitHub Actions toolkit
+        if: env.CHANGED_FILES != 'true'
+        run: |
+          mkdir -p $GITHUB_ACTIONS_PATH
+          curl -fL -o $GITHUB_ACTIONS_PATH/actions-ubuntu-latest.tar.gz https://github.com/actions/checkout/releases/download/v3.2.0/actions-ubuntu-latest.tar.gz
+          tar -xz -C $GITHUB_ACTIONS_PATH -f $GITHUB_ACTIONS_PATH/actions-ubuntu-latest.tar.gz
+          github.actions.skip "Skipping remaining steps"
       - name: Detect changed files
         run: |
           CHANGED_FILES=${{ env.CHANGED_FILES }}
