@@ -83,9 +83,6 @@ jobs:
           ls -al
           git add .
           git diff --quiet --staged . || echo "changed_files=true" >> $GITHUB_OUTPUT
-      - name: echo changefile result
-        run: |
-          echo changed_files=${{ env.changed_files }}
 
   generate:
     runs-on: ubuntu-latest
@@ -124,7 +121,7 @@ jobs:
           git commit -m "Update soure files for version $VERSION_NEXT"
           git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
           echo git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
-          echo git push origin main --follow-tags
+          git push origin main --follow-tags
       # - name: Install Ruby
       #   if: env.CHANGED_FILES == 'true'
       #   uses: ruby/setup-ruby@v1
