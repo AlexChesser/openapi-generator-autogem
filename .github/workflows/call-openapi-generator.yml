@@ -45,7 +45,7 @@ jobs:
             -o /local/my_client
       - name: Detect changed files
         run: |
-          CHANGED_FILES=$(git status --porcelain)
+          CHANGED_FILES=$(git --no-pager diff --name-only)
           echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changes detected, exiting that's OK"
