@@ -89,7 +89,6 @@ jobs:
         with:
           path: ${{ github.workspace }}
       - name: Regenerate OpenAPI client using new version
-        if: env.CHANGED_FILES == 'true'
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/local \
@@ -104,7 +103,6 @@ jobs:
             -p library=faraday \
             -o /local/my_client
       - name: commit to main
-        if: env.CHANGED_FILES == 'true'
         run: |
           VERSION_NEXT=${{ needs.version_details.outputs.next }}
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
