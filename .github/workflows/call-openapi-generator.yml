@@ -46,7 +46,7 @@ jobs:
       - name: Check if there are any changes
         id: verify_diff
         run: |
-          git diff --quiet . || echo "CHANGED_FILES"=true" >> $GITHUB_OUTPUT
+          git diff --quiet . || echo "CHANGED_FILES=true" >> $GITHUB_OUTPUT
       - name: Output previous result
         run: |
           ls -al
