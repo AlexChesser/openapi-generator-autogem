@@ -122,21 +122,21 @@ jobs:
           git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
           echo git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
           git push origin main --follow-tags
-      # - name: Install Ruby
-      #   if: env.CHANGED_FILES == 'true'
-      #   uses: ruby/setup-ruby@v1
-      #   with:
-      #     ruby-version: 3.0
-      # - name: build gemVersion
-      #   if: env.CHANGED_FILES == 'true'
+      - name: Install Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0
+      - name: build gemVersion
+        run: |
+          ls -al
+          sudo gem build my_client.gemspec
+          ls -al
+      # - name: Release Gem
       #   run: |
-      #     cd my_client
-      #     ls -al
-      #     sudo gem build my_client.gemspec
-      # - name: commit to main
-      #   run: |
-      #     git config --global user.email "github-actions[bot]@users.noreply.github.com"
-      #     git config --global user.name "github-actions[bot]"
-      #     git add .
-      #     git commit -m "Update gemVersion"
-      #     git push
+      #     git config --global --add safe.directory $(realpath .)
+      #     git config user.email "engineering@justworks.com"
+      #     git config user.name "Justworks Publisher"
+      #     mkdir -p $HOME/.gem
+      #     printf "%s\n" "https://rubygems.pkg.github.com/justworkshr: Bearer ${{secrets.GEM_RELEASE_TOKEN}}" > $HOME/.gem/credentials
+      #     chmod 0600 $HOME/.gem/credentials
+      #     gem push *.gem
