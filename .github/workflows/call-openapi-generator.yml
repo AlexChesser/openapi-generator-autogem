@@ -14,15 +14,19 @@ jobs:
         uses: actions/checkout@v2
         with:
           path: ${{ github.workspace }}
-      - name: Increment version
-        uses: actions/semver@v1
-        with:
-          increment: 1.2.3
-        id: semver
-      - name: list files
+      - name: load current version
         run: |
-          pwd
-          ls -al
+          # List git tags sorted based on semantic versioning
+          GIT_TAGS=$(git tag --sort=version:refname)
+          # Get last line of output which returns the
+          # last tag (most recent version)
+          GIT_TAG_LATEST=$(echo "$GIT_TAGS" | tail -n 1)
+          # If no tag found, default to v0.0.0
+          if [ -z "$GIT_TAG_LATEST" ]; then
+            GIT_TAG_LATEST="v0.0.0"
+          fi
+          # Strip prefix 'v' from the tag to easily increment
+          GIT_TAG_LATEST=$(echo "$GIT_TAG_LATEST" | sed 's/^v//')
       - name: Run OpenAPI Generator
         run: |
           docker run --rm \
@@ -33,7 +37,7 @@ jobs:
             -g ruby \
             -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
             -p packageName=my_client \
-            -p gemVersion=${steps.semver.outputs.version} \
+            -p gemVersion=$GIT_TAG_LATEST \
             -p moduleName=MyClient \
             -p library=faraday \
             -o /local/my_client
@@ -42,9 +46,28 @@ jobs:
           CHANGED_FILES=$(git status --porcelain)
           echo $CHANGED_FILES
           if [ -z "$CHANGED_FILES" ]; then
-            echo "No changes detected, exiting"
-            exit 1
+            echo "No changes detected, exiting that's OK"
+            exit 0
           fi
+      - name: increment version
+        run: |
+          VERSION_NEXT="$(echo "$GIT_TAG_LATEST" | awk -F. '{$NF++; print $1"."$2"."$NF}')"
+          git tag -a "v$VERSION_NEXT" -m "Release: v$VERSION_NEXT"
+          git push origin main --follow-tags
+      - name: Regenerate OpenAPI client using new version
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/local \
+            openapitools/openapi-generator-cli:latest \
+            java -jar /opt/openapi-generator/modules/openapi-generator-cli/target/openapi-generator-cli.jar \
+            generate \
+            -g ruby \
+            -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
+            -p packageName=my_client \
+            -p gemVersion=$VERSION_NEXT \
+            -p moduleName=MyClient \
+            -p library=faraday \
+            -o /local/my_client
       - name: commit to main
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
