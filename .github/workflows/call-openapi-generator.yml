@@ -1,12 +1,23 @@
 name: OpenAPI Generator
 
+env:
+  OPEN_API_SPEC_URL: "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json"
+  PACKAGE_NAME: "my_client"
+  MODULE_NAME: "MyClient"
+  GEM_PUBLISHER_NAME: "Gem Publisher Name"
+  GEM_PUBLISHER_EMAIL: "example@example.com"
+  GEM_PUBLISH_DESTINATION_URL: "https://rubygems.pkg.github.com/publisher_name"
+  GEM_RELEASE_TOKEN: ${{ secrets.GEM_RELEASE_TOKEN }}
+
 on:
+  schedule:
+    - cron: "0 0 * * *"
   push:
     branches:
       - main
 
 jobs:
-  version:
+  gather_version_info:
     outputs:
       current: ${{ steps.current.outputs.current }}
       next: ${{ steps.next.outputs.next }}
@@ -19,7 +30,6 @@ jobs:
       - name: Get tags
         run: git fetch --prune --tags origin
       - name: pull version information
-        id: version
         run: |
           # List git tags sorted based on semantic versioning
           GIT_TAGS=$(git tag --sort=version:refname)
@@ -54,7 +64,7 @@ jobs:
 
   check_for_changes:
     runs-on: ubuntu-latest
-    needs: version
+    needs: gather_version_info
     outputs:
       changed_files: ${{ steps.verify_diff.outputs.changed_files }}
     steps:
@@ -64,19 +74,19 @@ jobs:
           path: ${{ github.workspace }}
       - name: Run OpenAPI Generator
         run: |
-          echo GIT_TAG_LATEST=${{needs.version.outputs.current}}
+          echo GIT_TAG_LATEST=${{needs.gather_version_info.outputs.current}}
           docker run --rm \
             -v ${{ github.workspace }}:/local \
             openapitools/openapi-generator-cli:latest \
             java -jar /opt/openapi-generator/modules/openapi-generator-cli/target/openapi-generator-cli.jar \
             generate \
             -g ruby \
-            -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
-            -p packageName=my_client \
-            -p gemVersion=${{needs.version.outputs.current}} \
-            -p moduleName=MyClient \
+            -i ${{ env.OPEN_API_SPEC_URL }} \
+            -p packageName=${{ env.PACKAGE_NAME }} \
+            -p gemVersion=${{needs.gather_version_info.outputs.current}} \
+            -p moduleName=${{ env.MODULE_NAME }} \
             -p library=faraday \
-            -o /local/my_client
+            -o /local/${{ env.PACKAGE_NAME }}
       - name: Check if there are any changes
         id: verify_diff
         run: |
@@ -92,14 +102,14 @@ jobs:
 
   generate:
     runs-on: ubuntu-latest
-    needs: [ version, check_for_changes ]
+    needs: [ gather_version_info, check_for_changes ]
     if: ${{ needs.check_for_changes.outputs.changed_files == 'true' }}
     steps:
       - name: confirm variables
         run: |
           echo changed_files ${{ needs.check_for_changes.outputs.changed_files }}
-          echo current ${{ needs.version.outputs.current }}
-          echo next ${{ needs.version.outputs.next }}
+          echo current ${{ needs.gather_version_info.outputs.current }}
+          echo next ${{ needs.gather_version_info.outputs.next }}
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -112,15 +122,15 @@ jobs:
             java -jar /opt/openapi-generator/modules/openapi-generator-cli/target/openapi-generator-cli.jar \
             generate \
             -g ruby \
-            -i https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/api-with-examples.json \
-            -p packageName=my_client \
-            -p gemVersion=${{ needs.version.outputs.next }} \
-            -p moduleName=MyClient \
+            -i ${{ env.OPEN_API_SPEC_URL }} \
+            -p packageName=${{ env.PACKAGE_NAME }} \
+            -p gemVersion=${{ needs.gather_version_info.outputs.next }} \
+            -p moduleName=${{ env.MODULE_NAME }} \
             -p library=faraday \
-            -o /local/my_client
+            -o /local/${{ env.PACKAGE_NAME }}
       - name: commit to main
         run: |
-          VERSION_NEXT=${{ needs.version.outputs.next }}
+          VERSION_NEXT=${{ needs.gather_version_info.outputs.next }}
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add .
@@ -135,15 +145,17 @@ jobs:
       - name: build gemVersion
         run: |
           ls -al
-          cd my_client
-          sudo gem build my_client.gemspec
+          echo cd ${{ env.PACKAGE_NAME }}
+          cd ${{ env.PACKAGE_NAME }}
+          echo sudo gem build ${{ env.PACKAGE_NAME }}.gemspec
+          sudo gem build ${{ env.PACKAGE_NAME }}.gemspec
           ls -al
       # - name: Release Gem
       #   run: |
       #     git config --global --add safe.directory $(realpath .)
-      #     git config user.email "engineering@justworks.com"
-      #     git config user.name "Justworks Publisher"
+      #     git config user.email ${{ env.GEM_PUBLISHER_EMAIL }}
+      #     git config user.name ${{ env.GEM_PUBLISHER_NAME }}
       #     mkdir -p $HOME/.gem
-      #     printf "%s\n" "https://rubygems.pkg.github.com/justworkshr: Bearer ${{secrets.GEM_RELEASE_TOKEN}}" > $HOME/.gem/credentials
+      #     printf "%s\n" "${{ env.GEM_PUBLISH_DESTINATION_URL }}: Bearer ${{ env.GEM_RELEASE_TOKEN }}" > $HOME/.gem/credentials
       #     chmod 0600 $HOME/.gem/credentials
       #     gem push *.gem
