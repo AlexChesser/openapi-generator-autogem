@@ -10,4 +10,4 @@ Runs a github action on push to:
 6. commit changes and tag the new version
 7. (coming soon) compile the gem
 8. (coming soon) publish that updated gem
-
+ 
